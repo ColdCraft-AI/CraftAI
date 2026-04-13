@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Analytics } from "@vercel/analytics/react";
 
 const TONES = ["Professional", "Casual", "Bold", "Friendly", "Consultative"];
 const GOALS = ["Book a meeting", "Get a reply", "Pitch a service", "Request intro", "Follow up"];
@@ -730,6 +731,7 @@ export default function ColdEmailGenerator() {
           © 2026 All rights reserved.
         </div>
       </div>
+      <Analytics />
     </div>
   );
 }
