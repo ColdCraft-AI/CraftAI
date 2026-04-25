@@ -1,15 +1,25 @@
 import { useState, useRef } from "react";
 
-const TONES = ["Professional", "Casual", "Bold", "Friendly", "Consultative"];
-const GOALS = ["Book a meeting", "Get a reply", "Pitch a service", "Request intro", "Follow up"];
+var TONES = ["Professional", "Casual", "Bold", "Friendly", "Consultative"];
+var GOALS = ["Book a meeting", "Get a reply", "Pitch a service", "Request intro", "Follow up"];
 
-const STATS = [
-  { value: "47%", label: "Avg. Reply Rate" },
-  { value: "2.3x", label: "More Meetings" },
-  { value: "12s", label: "Generation Time" },
+var STRATEGIES = [
+  { id: "auto", name: "Auto-Select", icon: "\u2728", desc: "AI picks the best strategy based on your inputs", tag: "Recommended" },
+  { id: "trigger", name: "Trigger Event", icon: "\u26A1", desc: "Hook into a recent event (new hire, funding, launch)", tag: "10%+ reply rate" },
+  { id: "partnership", name: "Partnership Frame", icon: "\uD83E\uDD1D", desc: "Position as an ally, not a vendor", tag: "24% response rate" },
+  { id: "casestudy", name: "Case Study Nudge", icon: "\uD83D\uDCC8", desc: "Lead with a specific result for a similar company", tag: "Same-day replies" },
+  { id: "linkedin", name: "LinkedIn Hook", icon: "\uD83D\uDD0D", desc: "Reference their recent post or activity", tag: "Bypasses spam filters" },
+  { id: "pov", name: "Executive POV", icon: "\uD83C\uDFAF", desc: "Offer a unique insight for C-level prospects", tag: "C-level replies" },
+  { id: "peer", name: "Peer-to-Peer", icon: "\uD83D\uDCAC", desc: "Ultra-casual, sounds like a quick text from a peer", tag: "Beats 0.1% benchmarks" },
 ];
 
-const EXAMPLE_EMAILS = [
+var STATS = [
+  { value: "47%", label: "Avg. Reply Rate" },
+  { value: "2.3x", label: "More Meetings" },
+  { value: "6", label: "Proven Strategies" },
+];
+
+var EXAMPLE_EMAILS = [
   {
     subject: "Quick question about [Company]'s growth plans",
     body: "Hi [First Name],\n\nI noticed [Company] recently expanded into [market/area] \u2014 congrats on the momentum.\n\nI work with companies in [industry] who are scaling fast and typically struggle with [specific pain point]. We helped [similar company] solve this and they saw [specific result] within 90 days.\n\nWould it make sense to chat for 15 minutes this week?\n\nBest,\n[Your Name]",
@@ -22,14 +32,96 @@ const EXAMPLE_EMAILS = [
   },
 ];
 
+function getStrategyInstructions(strategyId) {
+  var map = {
+    trigger: [
+      "STRATEGY: TRIGGER EVENT (proven 10%+ reply rate)",
+      "The email MUST reference a specific recent event about the prospect's company.",
+      "Events: new hire, funding round, product launch, expansion, job posting, acquisition, or leadership change.",
+      "The trigger event should be the OPENING LINE.",
+      "Frame your offer as directly relevant to the change they are going through.",
+      "Structure: [Trigger event observation] then [Why this matters for them] then [How you help] then [Low-friction CTA]",
+    ],
+    partnership: [
+      "STRATEGY: PARTNERSHIP FRAMING (proven 24% response rate)",
+      "Do NOT position yourself as a vendor. Position yourself as a potential ALLY.",
+      "Frame the email as offering HELP first, not asking for something.",
+      "Offer to handle a specific problem they likely don't have bandwidth for.",
+      "Use 'I could help with...' or 'Would it be useful if...' instead of 'We offer...'",
+      "Structure: [Observation about their challenge] then [Specific way you could help] then [Frame as mutual benefit] then [Soft CTA]",
+    ],
+    casestudy: [
+      "STRATEGY: CASE STUDY NUDGE (proven same-day CEO replies)",
+      "Lead with a SPECIFIC result for a similar company with numbers.",
+      "Don't just say 'we helped companies' \u2014 include metrics and timeframes.",
+      "If the user provided proof/results, make it the centerpiece.",
+      "If no proof, create a bracketed placeholder like '[We helped X achieve Y in Z days]'.",
+      "Structure: [Observation about their gap] then [Specific case study with numbers] then [Bridge to their situation] then [CTA]",
+    ],
+    linkedin: [
+      "STRATEGY: LINKEDIN OBSERVATION (proven to bypass mental spam filters)",
+      "Opening line MUST reference a specific LinkedIn post, comment, or article by the prospect.",
+      "Show genuine engagement \u2014 don't just say 'I saw your post.' Add what you agreed with or what insight you took away.",
+      "This proves the email is NOT mass-sent and builds instant rapport.",
+      "Transition naturally from the LinkedIn reference to your value prop.",
+      "Structure: [Reference their specific LinkedIn activity] then [Connect to shared interest] then [Bridge to offer] then [Conversational CTA]",
+    ],
+    pov: [
+      "STRATEGY: EXECUTIVE POINT OF VIEW (proven C-level replies within hours)",
+      "Targets senior executives (VP, C-suite, Directors). Write accordingly.",
+      "Do NOT ask for a demo. Offer a UNIQUE INSIGHT on a problem they haven't solved.",
+      "Acknowledge a specific achievement (award, podcast, keynote, milestone).",
+      "Provide instant intellectual value in the email body.",
+      "CTA should be about sharing ideas, not booking a sales call.",
+      "Structure: [Acknowledge achievement] then [Share unique POV on unsolved problem] then [Hint at how you help] then [Peer-level CTA]",
+    ],
+    peer: [
+      "STRATEGY: PEER-TO-PEER COLLOQUIAL (proven to beat 0.1% benchmarks)",
+      "Write as one executive emailing a peer. NOT as a salesperson.",
+      "Use SHORT sentences. Casual language. Industry jargon.",
+      "Remove ALL corporate-speak: no 'solutions', 'leverage', 'synergy', 'touch base'.",
+      "Use 'needing help with...', 'been dealing with...', 'thought you might know...'",
+      "Should feel typed on a phone in 30 seconds. Under 60 words. No formatting, no signature block.",
+    ],
+    auto: [
+      "STRATEGY: AUTO-SELECT THE BEST APPROACH",
+      "Based on the prospect info, choose the single best strategy from these options:",
+      "- If a trigger event was mentioned: use Trigger Event strategy",
+      "- If targeting C-level/VP: use Executive POV strategy",
+      "- If the sender has strong case study proof: use Case Study Nudge strategy",
+      "- If the tone is casual: use Peer-to-Peer strategy",
+      "- Otherwise: use Partnership Framing strategy",
+      "Apply the chosen strategy's principles to craft the email.",
+    ],
+  };
+  return map[strategyId] || map["auto"];
+}
+
+var CORE_RULES = [
+  "",
+  "PROVEN COLD EMAIL PRINCIPLES (based on 300K+ email analysis):",
+  "1. SELL THE CONVERSATION, NOT THE MEETING: Never ask for a 'demo' cold. Ask if a specific problem is a priority. Use Interest CTAs ('Is this on your radar?') not Specific CTAs ('Are you free Tuesday?').",
+  "2. SUBJECT LINE: Under 8 words, lowercase, curiosity-driven. Include company name when possible.",
+  "3. OPENING LINE: Must NOT start with 'I'. Start with an observation about THEM.",
+  "4. LENGTH: Under 120 words total. Every sentence must earn its place.",
+  "5. CTA: Exactly ONE low-friction call-to-action. 'Worth a 15-min chat?' beats 'Let me know when you're available for a 30-minute demo.'",
+  "6. NO FLUFF: No 'I hope this email finds you well', no buzzwords, no corporate-speak.",
+  "7. SOUND HUMAN: If it sounds like a template, rewrite it.",
+  "8. LINE BREAKS: Short paragraphs (1-2 sentences) for mobile readability.",
+];
+
 function generatePrompt(formData, tone) {
-  return [
-    "You are an expert cold email copywriter. Generate a cold outreach email based on these inputs:",
+  var strategyLines = getStrategyInstructions(formData.strategy);
+  var lines = [
+    "You are an expert cold email copywriter who has studied 300,000+ email threads and knows exactly what converts. Generate a cold outreach email using a PROVEN strategy.",
     "",
     "PROSPECT INFO:",
     "- Company: " + formData.company,
     "- Recipient's Role: " + formData.role,
     "- Industry: " + (formData.industry || "Not specified"),
+    "- Trigger Event: " + (formData.triggerEvent || "None specified \u2014 use your judgment based on the company"),
+  ];
+  lines = lines.concat([
     "",
     "SENDER INFO:",
     "- What you offer: " + formData.offer,
@@ -40,30 +132,31 @@ function generatePrompt(formData, tone) {
     "- Goal: " + formData.goal,
     "- Email length: Short (under 120 words)",
     "",
-    "RULES:",
-    "1. Subject line must be under 8 words, lowercase, curiosity-driven",
-    "2. Opening line must NOT start with \"I\" \u2014 start with something about THEM",
-    "3. Keep it under 120 words total",
-    "4. Include exactly ONE clear call-to-action",
-    "5. No fluff, no buzzwords, no \"I hope this email finds you well\"",
-    "6. Sound like a real human, not a template",
-    "7. Use line breaks for readability",
+  ]);
+  lines = lines.concat(strategyLines);
+  lines = lines.concat(CORE_RULES);
+  lines = lines.concat([
     "",
     "Respond in this EXACT format:",
     "SUBJECT: [subject line]",
     "---",
     "[email body]",
-  ].join("\n");
+  ]);
+  return lines.join("\n");
 }
 
 function generateSequencePrompt(formData, tone) {
-  return [
-    "You are an expert cold email copywriter. Generate a 3-email follow-up SEQUENCE based on these inputs:",
+  var strategyLines = getStrategyInstructions(formData.strategy);
+  var lines = [
+    "You are an expert cold email copywriter. Generate a 3-email follow-up SEQUENCE using a PROVEN strategy. Remember: 80% of replies happen after the 3rd touchpoint.",
     "",
     "PROSPECT INFO:",
     "- Company: " + formData.company,
     "- Recipient's Role: " + formData.role,
     "- Industry: " + (formData.industry || "Not specified"),
+    "- Trigger Event: " + (formData.triggerEvent || "None specified"),
+  ];
+  lines = lines.concat([
     "",
     "SENDER INFO:",
     "- What you offer: " + formData.offer,
@@ -73,13 +166,17 @@ function generateSequencePrompt(formData, tone) {
     "- Tone: " + tone,
     "- Goal: " + formData.goal,
     "",
-    "RULES FOR ALL EMAILS:",
+  ]);
+  lines = lines.concat(strategyLines);
+  lines = lines.concat(CORE_RULES);
+  lines = lines.concat([
+    "",
+    "SEQUENCE RULES:",
     "1. Each email under 100 words",
-    "2. Never start with \"I\" \u2014 always about THEM",
-    "3. Each email takes a DIFFERENT angle (don't repeat the same pitch)",
-    "4. Subject lines under 8 words, lowercase",
-    "5. Sound human, not templated",
-    "6. Email 1: Initial outreach. Email 2: Follow-up 3 days later (new angle, reference email 1 briefly). Email 3: Breakup email 5 days later (create subtle urgency).",
+    "2. Each email takes a DIFFERENT angle (don't repeat the same pitch)",
+    "3. Email 1 (Day 1): Initial outreach using the selected strategy",
+    "4. Email 2 (Day 4): Follow-up with new angle. Reference Email 1 briefly. Add new value or insight.",
+    "5. Email 3 (Day 9): Breakup email. Create subtle urgency/FOMO. This is the 'last chance' email \u2014 80% of replies come from these late touchpoints.",
     "",
     "Format EXACTLY like this:",
     "EMAIL 1 (Day 1):",
@@ -96,12 +193,14 @@ function generateSequencePrompt(formData, tone) {
     "SUBJECT: [subject]",
     "---",
     "[body]",
-  ].join("\n");
+  ]);
+  return lines.join("\n");
 }
 
 export default function ColdEmailGenerator() {
   const [formData, setFormData] = useState({
     company: "", role: "", industry: "", offer: "", proof: "",
+    triggerEvent: "", strategy: "auto",
     tones: ["Professional"], goal: "Book a meeting",
   });
   const [generating, setGenerating] = useState(false);
@@ -113,11 +212,12 @@ export default function ColdEmailGenerator() {
   const [mode, setMode] = useState("single");
   const [showExamples, setShowExamples] = useState(false);
   const [activeExample, setActiveExample] = useState(0);
+  const [showStrategyInfo, setShowStrategyInfo] = useState(false);
   const resultRef = useRef(null);
   var MAX_FREE = 3;
   var isLocked = usageCount >= MAX_FREE;
 
-  var FIELD_LIMITS = { company: 100, role: 100, industry: 100, offer: 500, proof: 300 };
+  var FIELD_LIMITS = { company: 100, role: 100, industry: 100, offer: 500, proof: 300, triggerEvent: 200 };
 
   function sanitize(value, maxLength) {
     var clean = value;
@@ -218,6 +318,7 @@ export default function ColdEmailGenerator() {
     bg: "#05070a", card: "#0b0f15", cardBorder: "#151c27",
     accent: "#3b82f6", accentSoft: "rgba(59,130,246,0.08)", accentBorder: "rgba(59,130,246,0.2)", accentGlow: "rgba(59,130,246,0.15)",
     green: "#10b981", greenSoft: "rgba(16,185,129,0.08)", greenBorder: "rgba(16,185,129,0.2)",
+    amber: "#f59e0b", amberSoft: "rgba(245,158,11,0.08)", amberBorder: "rgba(245,158,11,0.25)",
     text: "#e2e8f0", textMuted: "#64748b", textDim: "#334155",
     inputBorder: "#1e293b", danger: "#ef4444",
     font: "'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif",
@@ -234,6 +335,8 @@ export default function ColdEmailGenerator() {
 
   var STRIPE_URL = "https://buy.stripe.com/test_eVq3cx9gR2LOf0U4RLbAs00";
 
+  var selectedStrategy = STRATEGIES.find(function (s) { return s.id === formData.strategy; }) || STRATEGIES[0];
+
   return (
     <div style={{ minHeight: "100vh", background: V.bg, color: V.text, fontFamily: V.font, position: "relative", overflow: "hidden" }}>
       <style dangerouslySetInnerHTML={{ __html: [
@@ -245,20 +348,15 @@ export default function ColdEmailGenerator() {
         "@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }",
         "@keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }",
         "@keyframes gridMove { 0% { transform: translateY(0); } 100% { transform: translateY(40px); } }",
+        "@media (max-width: 520px) {",
+        "  .responsive-grid-2 { grid-template-columns: 1fr !important; }",
+        "  .responsive-chips { gap: 6px !important; }",
+        "  .responsive-chips button { padding: 7px 14px !important; font-size: 12px !important; }",
+        "}",
       ].join("\n") }} />
 
-      {/* Grid background */}
-      <div style={{
-        position: "fixed", inset: 0,
-        backgroundImage: "linear-gradient(" + V.cardBorder + " 1px, transparent 1px), linear-gradient(90deg, " + V.cardBorder + " 1px, transparent 1px)",
-        backgroundSize: "40px 40px", opacity: 0.3, pointerEvents: "none", animation: "gridMove 20s linear infinite",
-      }} />
-      <div style={{
-        position: "fixed", top: "-400px", left: "50%", transform: "translateX(-50%)",
-        width: "900px", height: "700px",
-        background: "radial-gradient(ellipse, " + V.accentGlow + " 0%, transparent 65%)",
-        pointerEvents: "none",
-      }} />
+      <div style={{ position: "fixed", inset: 0, backgroundImage: "linear-gradient(" + V.cardBorder + " 1px, transparent 1px), linear-gradient(90deg, " + V.cardBorder + " 1px, transparent 1px)", backgroundSize: "40px 40px", opacity: 0.3, pointerEvents: "none", animation: "gridMove 20s linear infinite" }} />
+      <div style={{ position: "fixed", top: "-400px", left: "50%", transform: "translateX(-50%)", width: "900px", height: "700px", background: "radial-gradient(ellipse, " + V.accentGlow + " 0%, transparent 65%)", pointerEvents: "none" }} />
 
       <div style={{ maxWidth: "680px", margin: "0 auto", padding: "48px 20px", position: "relative", zIndex: 1 }}>
 
@@ -282,7 +380,7 @@ export default function ColdEmailGenerator() {
             <span style={{ background: "linear-gradient(135deg, " + V.accent + ", #60a5fa, " + V.green + ")", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>actually convert</span>
           </h1>
           <p style={{ fontSize: "16px", color: V.textMuted, lineHeight: 1.6, maxWidth: "460px", margin: "0 auto" }}>
-            Generate hyper-personalized outreach in seconds. Pick your tone, define your target, let AI do the rest.
+            Powered by 6 proven strategies from 300K+ email analysis. Pick your strategy, define your target, let AI do the rest.
           </p>
         </div>
 
@@ -309,6 +407,34 @@ export default function ColdEmailGenerator() {
           })}
         </div>
 
+        {/* STRATEGY SELECTOR */}
+        <div style={{ background: V.card, border: "1px solid " + V.amberBorder, borderRadius: "14px", padding: "28px", marginBottom: "20px", animation: "fadeIn 0.85s" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "24px", paddingBottom: "16px", borderBottom: "1px solid " + V.cardBorder }}>
+            <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: V.amber, boxShadow: "0 0 8px rgba(245,158,11,0.3)" }} />
+            <span style={{ fontSize: "14px", fontWeight: 600 }}>Outreach Strategy</span>
+            <span style={{ fontSize: "11px", color: V.amber, fontWeight: 500, marginLeft: "auto" }}>Based on real case studies</span>
+          </div>
+          <div className="responsive-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+            {STRATEGIES.map(function (s) {
+              var isActive = formData.strategy === s.id;
+              return (
+                <button key={s.id} onClick={function () { setFormData(function (p) { var n = {}; for (var k in p) n[k] = p[k]; n.strategy = s.id; return n; }); }} style={{
+                  padding: "14px", borderRadius: "10px", textAlign: "left",
+                  border: "1px solid " + (isActive ? V.amberBorder : V.cardBorder),
+                  background: isActive ? V.amberSoft : "transparent",
+                  cursor: "pointer", transition: "all 0.2s",
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                    <span style={{ fontSize: "14px" }}>{s.icon} <span style={{ fontSize: "13px", fontWeight: isActive ? 600 : 500, color: isActive ? V.amber : V.text }}>{s.name}</span></span>
+                  </div>
+                  <div style={{ fontSize: "11px", color: V.textMuted, lineHeight: 1.4, marginBottom: "6px" }}>{s.desc}</div>
+                  <div style={{ display: "inline-block", fontSize: "10px", fontWeight: 600, color: isActive ? V.amber : V.textMuted, background: isActive ? "rgba(245,158,11,0.12)" : V.card, padding: "2px 8px", borderRadius: "100px", fontFamily: V.mono }}>{s.tag}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* FORM */}
         <div style={{ background: V.card, border: "1px solid " + V.cardBorder, borderRadius: "14px", padding: "28px", marginBottom: "20px", animation: "fadeIn 0.9s" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "24px", paddingBottom: "16px", borderBottom: "1px solid " + V.cardBorder }}>
@@ -316,7 +442,7 @@ export default function ColdEmailGenerator() {
             <span style={{ fontSize: "14px", fontWeight: 600 }}>Prospect Details</span>
           </div>
           <div style={{ display: "grid", gap: "18px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+            <div className="responsive-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
               <div>
                 <label style={labelStyle}>Company *</label>
                 <input style={inputStyle} placeholder="Stripe" maxLength={100} value={formData.company} onChange={function (e) { update("company", e.target.value); }} />
@@ -329,6 +455,10 @@ export default function ColdEmailGenerator() {
             <div>
               <label style={labelStyle}>Industry <span style={{ color: V.textDim }}>(optional)</span></label>
               <input style={inputStyle} placeholder="Fintech, SaaS, E-commerce" maxLength={100} value={formData.industry} onChange={function (e) { update("industry", e.target.value); }} />
+            </div>
+            <div>
+              <label style={labelStyle}>Trigger Event <span style={{ color: V.amber }}>\u26A1</span> <span style={{ color: V.textDim }}>(optional but powerful)</span></label>
+              <input style={inputStyle} placeholder="e.g. Just raised Series B, New VP of Sales hired, Launched in Europe" maxLength={200} value={formData.triggerEvent} onChange={function (e) { update("triggerEvent", e.target.value); }} />
             </div>
             <div>
               <label style={labelStyle}>What you offer *</label>
@@ -377,7 +507,7 @@ export default function ColdEmailGenerator() {
               {GOALS.map(function (g) {
                 var isActive = formData.goal === g;
                 return (
-                  <button key={g} onClick={function () { setFormData(function (p) { return Object.assign({}, p, { goal: g }); }); }} style={{
+                  <button key={g} onClick={function () { setFormData(function (p) { var n = {}; for (var k in p) n[k] = p[k]; n.goal = g; return n; }); }} style={{
                     padding: "8px 18px", borderRadius: "100px",
                     border: "1px solid " + (isActive ? "rgba(16,185,129,0.5)" : V.inputBorder),
                     background: isActive ? V.greenSoft : "transparent",
@@ -409,10 +539,10 @@ export default function ColdEmailGenerator() {
           }}
         >
           {generating
-            ? <span style={{ animation: "pulse 1.2s infinite" }}>Generating...</span>
+            ? <span style={{ animation: "pulse 1.2s infinite" }}>{"Generating with " + selectedStrategy.name + "..."}</span>
             : isLocked
               ? "Unlock Unlimited \u2192 $9/mo"
-              : "Generate " + (mode === "sequence" ? "Sequence" : "Email") + " \u2192"}
+              : "Generate " + (mode === "sequence" ? "Sequence" : "Email") + " with " + selectedStrategy.name + " \u2192"}
         </button>
 
         {/* ERROR */}
@@ -429,7 +559,7 @@ export default function ColdEmailGenerator() {
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: V.green, boxShadow: "0 0 6px " + V.green }} />
                 <span style={{ fontSize: "13px", fontWeight: 600, color: V.textMuted }}>
-                  {"Generated Email" + (results.length > 1 ? "s" : "")}
+                  {"Generated with " + selectedStrategy.name}
                 </span>
               </div>
               <button onClick={copyToClipboard} style={{
@@ -514,7 +644,7 @@ export default function ColdEmailGenerator() {
             <span style={{ color: V.accent }}>$9/mo</span>
           </h3>
           <p style={{ fontSize: "14px", color: V.textMuted, lineHeight: 1.6, maxWidth: "380px", margin: "0 auto 24px" }}>
-            Unlimited generations, multi-tone comparison, 3-email sequences, no ads, priority support.
+            All 6 strategies, unlimited generations, multi-tone comparison, 3-email sequences, no ads.
           </p>
           <button onClick={function () { window.open(STRIPE_URL, "_blank"); }} style={{
             padding: "14px 36px", background: "linear-gradient(135deg, " + V.accent + ", #2563eb)",
